@@ -22,12 +22,11 @@ public record ClientRequestDto(
         String lastName,
         @JsonProperty("segundoApellido")
         String secondLastName,
-        // Teléfono (entero). Acepta "telefono" o "teléfono".
+        // Acepta "telefono" o "teléfono".
         @NotNull
         @JsonProperty("telefono")
         @JsonAlias({"teléfono"})
-        Integer phoneNumber,
-        // Correo electrónico (formato válido). Acepta correElectronico/correoElectronico.
+        String phoneNumber,
         @NotBlank @Email
         @JsonProperty("correoElectronico")
         String email

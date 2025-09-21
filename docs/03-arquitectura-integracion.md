@@ -1,33 +1,54 @@
 # Arquitectura y Tipo de Integración
 
-Defino dos frentes: (1) el microservicio de **Clientes** y (2) la **integración** para matrícula/consulta/eliminación de cuentas con la Fintech.
-
 ## Decisiones principales
-- Uso **Java 21** y **Spring Boot 3.4.5** con **Maven**.
-- Expongo APIs REST síncronas.
-- Organizo por capas: `controller`, `service`, `repository`, `dto`, `exception`, `config`.
-- Valido entrada con **Jakarta Validation** (`@Valid`, constraints en DTOs).
-- Centralizo errores con un **Global Exception Handler**.
-- Dejo **logs** en archivo externo con nivel por entorno y trazabilidad por `idTx`.
-- Manejo **perfiles** `dev`, `qa` y `prd` con propiedades **externas** usando `--spring.config.additional-location=file:./config/`.
+- **Lenguaje/Framework**: Java 21 + Spring Boot 3.4.5, empaquetado con Maven.
+- **Estilo arquitectónico**: Microservicio independiente, sin estado, expuesto como API REST síncrona.
+- **Capas internas**:
+  - `api` → controladores REST
+  - `service` → lógica de negocio
+  - `repository` → acceso a datos con Spring Data JPA
+  - `dto` → contratos de entrada/salida
+  - `exception` → manejo centralizado de errores
+- **Validación de entrada**: `@Valid` + anotaciones de Jakarta Validation en los DTOs.
+- **Errores**: centralizados en `ApiExceptionHandler`, devolviendo mensajes claros en español.
+- **Logs**: gestionados con SLF4J/Logback, escritos en archivos externos por perfil, siempre trazando `idTx`.
+- **Perfiles**: `dev`, `qa` y `prd`, configurados mediante `application-*.properties` externos (`--spring.config.additional-location=file:./config/`).
+
+---
 
 ## Persistencia
-Para el microservicio de Clientes utilizo **H2** en modo archivo, con:
-- Entidad `Client` (UUID id, document_type, document_number, …).
-- Índice único (`document_type`, `document_number`) para evitar duplicados.
-- Con esto cubro registro, actualización y consulta solicitados.
+- **Base de datos**: H2 en modo archivo, una por perfil.
+- **Entidad**: `Client` con `UUID id` como clave primaria.
+- **Restricciones**: únicas en `document_number` y `email`.
+- **Configuración automática**: `spring.jpa.hibernate.ddl-auto=update`.
+
+Esto soporta los escenarios de **registro**, **actualización** y **consulta** de clientes.
+
+---
 
 ## Seguridad y calidad
-- Autenticación/autorización por canal se define según el entorno (placeholder para integración real).
-- Idempotencia: respeto `idTx` en flujos de integración; si recibo la misma operación, retorno el mismo resultado.
-- Timeouts y reintentos controlados al llamar a la Fintech.
-- Trazabilidad completa con `idTx`, tiempos y códigos HTTP.
+- **Validaciones funcionales**: unicidad de documento/email, formato de correo electrónico.
+- **Idempotencia**: uso de `idTx` como identificador de transacción.
+- **Trazabilidad**: cada request registra entrada, operación en base de datos y respuesta con códigos HTTP.
+- **Robustez**: manejo controlado de duplicados, “no encontrado” y validaciones obligatorias.
+- **Escalabilidad**: servicio stateless, desplegable en contenedores, escalable horizontalmente.
 
-## Contratos y nombres
-- Endpoints del microservicio de Clientes: `/guardarCliente`, `/actualizarCliente`, `/consultarCliente/{tipo}_{numero}`.
-- En integración de cuentas (desafío), trabajo con `/accounts` hacia la Fintech, adaptando si es necesario.
+---
 
-## Configuración externa (ejemplo)
-- `config/` contendrá `application-dev.properties`, `application-qa.properties`, `application-prd.properties`.
-- También parametrizo ahí la ruta de logs (por ejemplo `logging.file.name=./logs/app.log`).
+## Contratos y endpoints
+- **`/guardarCliente`** → `POST`, registro de cliente.
+- **`/actualizarCliente`** → `POST`, actualización de cliente por tipo/número documento.
+- **`/consultarCliente/{tipoDocumento}_{numeroDocumento}`** → `GET`, consulta de cliente.
+- **`/consultarClientes`** → `GET`, listado paginado (apoyo a pruebas).
 
+---
+
+## Configuración externa
+- **Carpeta `config/`** con:
+  - `application-dev.properties`
+  - `application-qa.properties`
+  - `application-prd.properties`
+- **Archivos de logs** en carpeta `logs/` por perfil:
+  - `clients-dev.log`
+  - `clients-qa.log`
+  - `clients-prd.log`  

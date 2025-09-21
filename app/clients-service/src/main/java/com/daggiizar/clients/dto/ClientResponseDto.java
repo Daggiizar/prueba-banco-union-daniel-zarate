@@ -10,6 +10,6 @@ public record ClientResponseDto(
         @JsonProperty("segundoNombre") String middleName,
         @JsonProperty("primerApellido") String lastName,
         @JsonProperty("segundoApellido") String secondLastName,
-        @JsonProperty("telefono") Integer phoneNumber,
+        @JsonProperty("telefono") String phoneNumber,
         @JsonProperty("correoElectronico") String email
 ) {}
